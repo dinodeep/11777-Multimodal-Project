@@ -120,9 +120,6 @@ class ImageCaptioner(nn.Module):
                 token_list.append(self.vocab.i2w(idx))
             batch_token_list.append(token_list)
 
-
-        import pdb; pdb.set_trace()
-
         return batch_token_list
 
     def sample_strings(self, imgs, max_length=32):
@@ -142,7 +139,7 @@ def test():
 
     ROOT = "data/raw-data/images/val"
     SIS_PATH = "data/raw-data/sis/val.story-in-sequence.json"
-    use_word_tokenizer = False
+    use_word_tokenizer = True 
 
     MAX_CHAR_SEQ_LEN = 64
     MAX_WORD_SEQ_LEN = 32
@@ -168,7 +165,7 @@ def test():
 
     out = captioner(imgs, gt_toks)
 
-    captioner.sample_strings(imgs)
+    result = captioner.sample_strings(imgs)
 
     import pdb; pdb.set_trace()
 
