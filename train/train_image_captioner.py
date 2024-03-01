@@ -1,3 +1,6 @@
+import argparse
+import os
+
 import torch
 import torch.nn as nn
 
@@ -41,11 +44,14 @@ def train(model, dataloader, opt, num_epochs=10):
     return
 
 
-def main():
+def main(args):
+
+    data_dir = args.data_dir
 
     # TODO: incapsulate vocab creation a bit better
-    ROOT = "data/raw-data/images/val"
-    SIS_PATH = "data/raw-data/sis/val.story-in-sequence.json"
+    root = os.path.join(data_dir, "images", "val")
+    sis_path = os.path.join(data_dir, "sis", "va.story-in-sequence.json")
+
     use_word_tokenizer = True
 
     MAX_CHAR_SEQ_LEN = 64
@@ -53,10 +59,10 @@ def main():
     
     if use_word_tokenizer:
         max_seq_len = MAX_WORD_SEQ_LEN
-        vocab = build_vocab(SIS_PATH, 50)
+        vocab = build_vocab(sis_path, 50)
     else:
         max_seq_len = MAX_CHAR_SEQ_LEN
-        vocab = build_character_vocab(SIS_PATH, 50)
+        vocab = build_character_vocab(sis_path, 50)
 
 
     captioner = ImageCaptioner(
@@ -66,11 +72,27 @@ def main():
     )
 
     # TODO: should be moving this to data loader with appropriate collating
-    ds = get_dataset(ROOT, SIS_PATH, vocab, TRAIN_TRANSFORM, max_seq_len)
+    ds = get_dataset(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len)
 
     opt = torch.optim.Adam(captioner.parameters(), lr=0.01)
     train(captioner, ds, opt)
 
 
 if __name__ == "__main__":
-    main()
+
+    # data folder should be structured as follows
+    '''
+        data/
+            images/
+                train/
+                val/
+                test/
+            dii/
+            sis/
+    '''
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir")
+
+    args = parser.parse_args()
+    main(args)
