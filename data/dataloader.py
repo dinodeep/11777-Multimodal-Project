@@ -13,6 +13,7 @@ import os
 import pickle
 import numpy as np
 import nltk
+import re
 from PIL import Image
 
 IMG_SIZE = 224
@@ -61,10 +62,29 @@ class VIST:
         self.stories = stories
 
 class Vocabulary(object):
-    def __init__(self):
+    def __init__(self, tokenizer):
+        '''tokenizer: str -> list of str constructing tokens'''
         self.word2idx = {}
         self.idx2word = {}
         self.idx = 0
+        self.tokenizer = tokenizer
+        
+        self.PAD = '<pad>'
+        self.START = '<start>'
+        self.END = '<end>'
+        self.UNK = '<unk>'
+
+        self._add_default_tokens()
+
+    def _add_default_tokens(self):
+        self.add_word(self.PAD)
+        self.add_word(self.START)
+        self.add_word(self.END)
+        self.add_word(self.UNK)
+        return
+    
+    def get_padding_idx(self):
+        return self.word2idx[self.PAD]
 
     def add_word(self, word):
         if not word in self.word2idx:
@@ -85,6 +105,9 @@ def build_vocab(sis_file, threshold):
     vist = VIST(sis_file, )
     counter = Counter()
 
+    def tokenizer(s):
+        return nltk.tokenize.word_tokenize(s.lower())
+
     ids = vist.stories.keys()
     for i, id in enumerate(ids):
         story = vist.stories[id]
@@ -92,7 +115,7 @@ def build_vocab(sis_file, threshold):
             caption = annotation['text']
             tokens = []
             try:
-                tokens = nltk.tokenize.word_tokenize(caption.lower())
+                tokens = tokenizer(caption)
             except Exception:
                 pass
             counter.update(tokens)
@@ -102,24 +125,51 @@ def build_vocab(sis_file, threshold):
 
     words = [word for word, cnt in counter.items() if cnt >= threshold]
 
-    vocab = Vocabulary()
-    vocab.add_word('<pad>')
-    vocab.add_word('<start>')
-    vocab.add_word('<end>')
-    vocab.add_word('<unk>')
+    vocab = Vocabulary(tokenizer)
 
     for i, word in enumerate(words):
         vocab.add_word(word)
 
     return vocab
 
+def build_character_vocab(sis_file, threshold):
+
+    vist = VIST(sis_file)
+    counter = Counter()
+
+    def tokenizer(s):
+        clean_text = re.sub(r'[^a-zA-Z0-9_ \.?!:]+', '', s.lower())
+        return list(clean_text)
+
+    ids = vist.stories.keys()
+    for i, id in enumerate(ids):
+        story = vist.stories[id]
+        for annotation in story:
+            caption = annotation["text"]
+
+            for c in caption:
+                counter.update(c)
+
+        if i % 1000 == 0:
+            print("[%d/%d] Tokenized the story captions." %(i, len(ids)))
+
+    chars = [char for char, cnt in counter.items() if cnt >= threshold] 
+
+    vocab = Vocabulary(tokenizer)
+
+    for i, chars in enumerate(chars):
+        vocab.add_word(chars)
+
+    return vocab
+
 class VistDataset(data.Dataset):
-    def __init__(self, image_dir, sis_path, vocab, transform=None):
+    def __init__(self, image_dir, sis_path, vocab, max_seq_len=64, transform=None):
         self.image_dir = image_dir
         self.vist = VIST(sis_path)
         self.ids = list(self.vist.stories.keys())
         self.vocab = vocab
         self.transform = transform
+        self.max_seq_len = max_seq_len
 
 
     def __getitem__(self, index):
@@ -135,7 +185,6 @@ class VistDataset(data.Dataset):
 
         story = vist.stories[story_id]
         image_formats = ['.jpg', '.gif', '.png', '.bmp']
-        print("Start of get item")
         for annotation in story:
             storylet_id = annotation["storylet_id"]
             image = Image.new('RGB', (256, 256))
@@ -155,9 +204,9 @@ class VistDataset(data.Dataset):
 
             text = annotation["text"]
             tokens = []
-            print("ANNOTATION", text.lower())
+            # print("ANNOTATION", text.lower())
             # try:
-            tokens = nltk.tokenize.word_tokenize(text.lower())
+            tokens = self.vocab.tokenizer(text)
             # except Exception :
                 # print("tokenizing caption failed")
                 # pass
@@ -166,11 +215,18 @@ class VistDataset(data.Dataset):
             caption.append(vocab('<start>'))
             caption.extend([vocab(token) for token in tokens])
             caption.append(vocab('<end>'))
+            caption = caption[:self.max_seq_len]
+
+            if len(caption) < self.max_seq_len:
+                caption += [vocab('<pad>')] * (self.max_seq_len - len(caption))
+
             target = torch.Tensor(caption)
             targets.append(target)
             raw_targets.append(text.lower())
-        print("here")
-        return torch.stack(images), raw_targets, targets, photo_sequence, album_ids
+
+        images = torch.stack(images)
+        targets = torch.stack(targets).to(torch.int64)
+        return images, raw_targets, targets, photo_sequence, album_ids
 
 
     def __len__(self):
@@ -197,11 +253,44 @@ def collate_fn(data):
     return image_stories, targets_set, lengths_set, photo_sequence_set, album_ids_set
 
 
-def get_dataset(root, sis_path, vocab, transform):
-    vist = VistDataset(image_dir=root, sis_path=sis_path, vocab=vocab, transform=transform)
+def get_dataset(root, sis_path, vocab, transform, max_seq_len):
+    vist = VistDataset(image_dir=root, sis_path=sis_path, vocab=vocab, transform=transform, max_seq_len=max_seq_len)
     return vist
 
-def get_loader(root, sis_path, vocab, transform, batch_size, shuffle, num_workers):
-    vist = VistDataset(image_dir=root, sis_path=sis_path, vocab=vocab, transform=transform)
+def get_loader(root, sis_path, vocab, transform, max_seq_len, batch_size, shuffle, num_workers):
+    vist = VistDataset(image_dir=root, sis_path=sis_path, vocab=vocab, transform=transform, max_seq_len=max_seq_len)
     data_loader = torch.utils.data.DataLoader(dataset=vist, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn)
     return data_loader
+
+def test():
+
+    ROOT = "data/raw-data/images/val"
+    SIS_PATH = "data/raw-data/sis/val.story-in-sequence.json"
+    use_word_tokenizer = False
+
+    MAX_CHAR_SEQ_LEN = 64
+    MAX_WORD_SEQ_LEN = 32
+    
+    if use_word_tokenizer:
+        max_seq_len = MAX_WORD_SEQ_LEN
+        vocab = build_vocab(SIS_PATH, 50)
+    else:
+        max_seq_len = MAX_CHAR_SEQ_LEN
+        vocab = build_character_vocab(SIS_PATH, 50)
+
+    ds = get_dataset(ROOT, SIS_PATH, vocab, TRAIN_TRANSFORM, max_seq_len)
+    data = ds[0]
+
+    '''
+    description of data
+        data[0]: tensor of stack of images (5, C, H, W) - normalized with mean 0 and std. dev something
+        data[1]: list[str] - list of length 5, each item is ground truth text, untokenized
+        data[2]: tensor of shape (5, max_seq_len), each a tensor of some varying length representing indices into vocabulary (padded if necessary)
+        data[3]: list[str] - list of string image ids
+        data[4]: list[str] - list of different album ids or something?
+    '''
+
+    import pdb; pdb.set_trace()
+
+if __name__ == "__main__":
+    test()

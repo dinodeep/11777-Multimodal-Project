@@ -3,3 +3,5 @@
 **/__pycache__
 **/*.tar.gz
 **/*.zip
+
+data/raw-data
