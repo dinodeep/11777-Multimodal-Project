@@ -62,12 +62,13 @@ class VIST:
         self.stories = stories
 
 class Vocabulary(object):
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer, merger):
         '''tokenizer: str -> list of str constructing tokens'''
         self.word2idx = {}
         self.idx2word = {}
         self.idx = 0
         self.tokenizer = tokenizer
+        self.merger = merger
         
         self.PAD = '<pad>'
         self.START = '<start>'
@@ -94,8 +95,13 @@ class Vocabulary(object):
 
     def __call__(self, word):
         if not word in self.word2idx:
-            return self.word2idx['<unk>']
+            return self.word2idx[self.UNK]
         return self.word2idx[word]
+    
+    def i2w(self, i):
+        if i not in self.idx2word:
+            return self.idx2word[self.UNK]
+        return self.idx2word[i]
 
     def __len__(self):
         return len(self.word2idx)
@@ -107,6 +113,9 @@ def build_vocab(sis_file, threshold):
 
     def tokenizer(s):
         return nltk.tokenize.word_tokenize(s.lower())
+    
+    def merger(tokens):
+        return " ".join(tokens)
 
     ids = vist.stories.keys()
     for i, id in enumerate(ids):
@@ -125,7 +134,7 @@ def build_vocab(sis_file, threshold):
 
     words = [word for word, cnt in counter.items() if cnt >= threshold]
 
-    vocab = Vocabulary(tokenizer)
+    vocab = Vocabulary(tokenizer, merger)
 
     for i, word in enumerate(words):
         vocab.add_word(word)
@@ -140,6 +149,9 @@ def build_character_vocab(sis_file, threshold):
     def tokenizer(s):
         clean_text = re.sub(r'[^a-zA-Z0-9_ \.?!:]+', '', s.lower())
         return list(clean_text)
+    
+    def merger(tokens):
+        return "".join(tokens)
 
     ids = vist.stories.keys()
     for i, id in enumerate(ids):
@@ -155,7 +167,7 @@ def build_character_vocab(sis_file, threshold):
 
     chars = [char for char, cnt in counter.items() if cnt >= threshold] 
 
-    vocab = Vocabulary(tokenizer)
+    vocab = Vocabulary(tokenizer, merger)
 
     for i, chars in enumerate(chars):
         vocab.add_word(chars)

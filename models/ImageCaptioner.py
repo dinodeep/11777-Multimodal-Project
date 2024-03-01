@@ -40,6 +40,7 @@ class ImageCaptioner(nn.Module):
 
 
     def forward(self, imgs, gt_words):
+        '''takes in images and predicts words by feeding in ground truth words'''
         # x (B, C, H, W)
         # tokens: (B, L)
 
@@ -69,6 +70,72 @@ class ImageCaptioner(nn.Module):
         B_out, L_out, V_out = prob.shape
         assert(B_out == B and L_out == L and V_out == self.vocab_size)
         return prob
+    
+
+    def sample_token_idxs(self, imgs, max_length=32):
+        '''takes in a batch of images and generates sequences of text'''
+        # imgs: (B, C, H, W)
+        B, _, _, _ = imgs.shape
+
+        # encode images: (B, D)
+        img_enc = self.img_encoder(imgs)
+
+        # create start tokens for each sequence in the batch (B, 1, E)
+        start_indices = torch.full((B, 1), self.vocab.get_padding_idx())
+        start_tok_embeddings = self.embeddings(start_indices)
+
+        # initialize token embeddings being passed into RNN layer and hidden
+        seq_token_idxs = [start_indices]
+        curr_token_embeddings = start_tok_embeddings
+        h = img_enc.unsqueeze(0)
+
+        # iterate through and keep adding tokens until done
+        for i in range(max_length):
+            # get hidden unit and mkae predictions on sequence
+            z, h = self.rnn(curr_token_embeddings, h)
+            next_token_logits = self.lin_out(z)
+            next_token_probs = self.softmax(next_token_logits)
+            next_token_idxs = torch.argmax(next_token_probs, dim=-1)
+
+            # decide on the next tokens and get their embeddings to recurse
+            seq_token_idxs.append(next_token_idxs)
+            curr_token_embeddings = self.embeddings(next_token_idxs)
+
+
+        # convert the tokens into a tensor
+        seq_idxs = torch.concat(seq_token_idxs, dim=-1)
+        return seq_idxs
+ 
+    def sample_tokens(self, imgs, max_length=32):
+
+        # get the tokens
+        tokens_idxs = self.sample_token_idxs(imgs, max_length=max_length)
+        batch_token_idxs = tokens_idxs.cpu().tolist()
+
+        # convert each of them into their appropriate strings
+        batch_token_list = []
+        for token_idxs in batch_token_idxs:
+            token_list = []
+            for idx in token_idxs:
+                token_list.append(self.vocab.i2w(idx))
+            batch_token_list.append(token_list)
+
+
+        import pdb; pdb.set_trace()
+
+        return batch_token_list
+
+    def sample_strings(self, imgs, max_length=32):
+
+        batch_token_list = self.sample_tokens(imgs, max_length=max_length)
+
+        # join each string token by a space
+        batch_strs = []
+        for token_list in batch_token_list:
+            batch_strs.append(self.vocab.merger(token_list))
+        
+        return batch_strs
+
  
 
 def test():
@@ -100,6 +167,10 @@ def test():
     )
 
     out = captioner(imgs, gt_toks)
+
+    captioner.sample_strings(imgs)
+
+    import pdb; pdb.set_trace()
 
     return
 
