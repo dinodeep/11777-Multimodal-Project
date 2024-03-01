@@ -7,6 +7,8 @@ import torch.nn as nn
 from models.ImageCaptioner import ImageCaptioner
 from data.dataloader import build_vocab, build_character_vocab, get_dataset, TRAIN_TRANSFORM
 
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def train(model, dataloader, opt, num_epochs=10):
     '''
@@ -19,6 +21,8 @@ def train(model, dataloader, opt, num_epochs=10):
         define a loss function
     '''
 
+    model = model.to(DEVICE)
+
     # define cross entropy loss
     loss_fn = nn.CrossEntropyLoss()
 
@@ -26,6 +30,8 @@ def train(model, dataloader, opt, num_epochs=10):
         
         for data in dataloader:
             images, _, gt_toks, _, _ = data
+            images = images.to(DEVICE)
+            gt_toks = gt_toks.to(DEVICE)
 
             # forward pass
             pred = model(images, gt_toks)
@@ -41,6 +47,8 @@ def train(model, dataloader, opt, num_epochs=10):
             loss.backward()
             opt.step()
 
+        # need to implement sampling given an image
+
     return
 
 
@@ -50,7 +58,7 @@ def main(args):
 
     # TODO: incapsulate vocab creation a bit better
     root = os.path.join(data_dir, "images", "val")
-    sis_path = os.path.join(data_dir, "sis", "va.story-in-sequence.json")
+    sis_path = os.path.join(data_dir, "sis", "val.story-in-sequence.json")
 
     use_word_tokenizer = True
 
@@ -82,7 +90,7 @@ if __name__ == "__main__":
 
     # data folder should be structured as follows
     '''
-        data/
+        {data-dir}/
             images/
                 train/
                 val/
