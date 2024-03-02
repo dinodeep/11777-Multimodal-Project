@@ -1,5 +1,6 @@
 import argparse
 import os
+from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -33,7 +34,7 @@ def train(model, dataloader, opt, num_epochs=10):
 
     for i in range(num_epochs):
         
-        for data in dataloader:
+        for data in tqdm(dataloader):
             images, _, gt_toks, _, _ = data
             images = images.to(DEVICE)
             gt_toks = gt_toks.to(DEVICE)
@@ -53,6 +54,8 @@ def train(model, dataloader, opt, num_epochs=10):
             opt.step()
 
         # need to implement sampling given an image
+            
+        import pdb; pdb.set_trace()
 
     return
 
