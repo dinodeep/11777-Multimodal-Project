@@ -247,29 +247,27 @@ class VistDataset(data.Dataset):
 
 def collate_fn(data):
 
-    image_stories, caption_stories, photo_sequence_set, album_ids_set = zip(*data)
+    # NOTE: because each sample starts with 5 samples
+    # resulting number of samples is 5 * batch_size for image captioning
+    # TODO: separate data loading functionality: image captioning vs. story gen
 
-    targets_set = []
-    lengths_set = []
+    imgs = [data[i][0] for i in range(len(data))]
+    raw_targets = [data[i][1] for i in range(len(data))]
+    targets = [data[i][2] for i in range(len(data))]
+    photo_sequence = [data[i][3] for i in range(len(data))]
+    album_ids = [data[i][4] for i in range(len(data))]
 
-    for captions in caption_stories:
-        lengths = [len(cap) for cap in captions]
-        targets = torch.zeros(len(captions), max(lengths)).long()
-        for i, cap in enumerate(captions):
-            end = lengths[i]
-            targets[i, :end] = cap[:end]
+    # convert the images and targets into a single tensor
+    imgs = torch.concat(imgs, dim=0)
+    targets = torch.concat(targets, dim=0)
 
-        targets_set.append(targets)
-        lengths_set.append(lengths)
-
-    return image_stories, targets_set, lengths_set, photo_sequence_set, album_ids_set
-
+    return imgs, raw_targets, targets, photo_sequence, album_ids
 
 def get_dataset(root, sis_path, vocab, transform, max_seq_len):
     vist = VistDataset(image_dir=root, sis_path=sis_path, vocab=vocab, transform=transform, max_seq_len=max_seq_len)
     return vist
 
-def get_loader(root, sis_path, vocab, transform, max_seq_len, batch_size, shuffle, num_workers):
+def get_dataloader(root, sis_path, vocab, transform, max_seq_len, batch_size, shuffle, num_workers):
     vist = VistDataset(image_dir=root, sis_path=sis_path, vocab=vocab, transform=transform, max_seq_len=max_seq_len)
     data_loader = torch.utils.data.DataLoader(dataset=vist, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn)
     return data_loader

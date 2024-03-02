@@ -5,7 +5,12 @@ import torch
 import torch.nn as nn
 
 from models.ImageCaptioner import ImageCaptioner
-from data.dataloader import build_vocab, build_character_vocab, get_dataset, TRAIN_TRANSFORM
+from data.dataloader import \
+    build_vocab, \
+    build_character_vocab, \
+    get_dataset, \
+    get_dataloader, \
+    TRAIN_TRANSFORM
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -80,10 +85,10 @@ def main(args):
     )
 
     # TODO: should be moving this to data loader with appropriate collating
-    ds = get_dataset(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len)
+    dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, 4, True, 0)
 
     opt = torch.optim.Adam(captioner.parameters(), lr=0.01)
-    train(captioner, ds, opt)
+    train(captioner, dl, opt)
 
 
 if __name__ == "__main__":

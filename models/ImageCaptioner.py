@@ -152,7 +152,13 @@ def test():
         vocab = build_character_vocab(SIS_PATH, 50)
 
 
-    ds = get_dataset(ROOT, SIS_PATH, vocab, TRAIN_TRANSFORM, max_seq_len)
+    batch_size = 8
+
+
+    ds = get_dataloader(
+        ROOT, SIS_PATH, vocab, TRAIN_TRANSFORM, 
+        max_seq_len, batch_size, True, 0
+    )
     imgs, _, gt_toks, _, _= ds[0]
 
     # import pdb; pdb.set_trace()
