@@ -86,6 +86,9 @@ class Vocabulary(object):
     
     def get_padding_idx(self):
         return self.word2idx[self.PAD]
+    
+    def get_starting_idx(self):
+        return self.word2idx[self.START]
 
     def add_word(self, word):
         if not word in self.word2idx:

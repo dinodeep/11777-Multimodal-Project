@@ -26,6 +26,9 @@ def train(model, dataloader, opt, num_epochs=10):
 
         define a loss function
     '''
+    print("Training")
+
+    LIMIT = 1
 
     model = model.to(DEVICE)
 
@@ -33,11 +36,12 @@ def train(model, dataloader, opt, num_epochs=10):
     loss_fn = nn.CrossEntropyLoss()
 
     for i in range(num_epochs):
-        
+
         for data in tqdm(dataloader):
             images, _, gt_toks, _, _ = data
             images = images.to(DEVICE)
             gt_toks = gt_toks.to(DEVICE)
+            print(gt_toks)
 
             # forward pass
             pred = model(images, gt_toks)
@@ -53,11 +57,21 @@ def train(model, dataloader, opt, num_epochs=10):
             loss.backward()
             opt.step()
 
-        # need to implement sampling given an image
-            
-        import pdb; pdb.set_trace()
+            print(model.sample_strings(images))
 
     return
+
+def eval(model, dl):
+    print("Evaluating")
+
+    for data in dl:
+        imgs, _, gt_toks, _, _ = data
+
+        result = model.sample_token_idxs(imgs)
+        import pdb; pdb.set_trace()
+
+
+    pass
 
 
 def main(args):
@@ -68,7 +82,7 @@ def main(args):
     root = os.path.join(data_dir, "images", "val")
     sis_path = os.path.join(data_dir, "sis", "val.story-in-sequence.json")
 
-    use_word_tokenizer = True
+    use_word_tokenizer = False
 
     MAX_CHAR_SEQ_LEN = 64
     MAX_WORD_SEQ_LEN = 32
@@ -83,14 +97,20 @@ def main(args):
 
     captioner = ImageCaptioner(
         vocab=vocab,
-        token_emb_dim=32,
-        hidden_dim=32
+        token_emb_dim=512,
+        hidden_dim=512
     )
 
     # TODO: should be moving this to data loader with appropriate collating
-    dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, 4, True, 0)
+    dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, 1, False, 0)
 
-    opt = torch.optim.Adam(captioner.parameters(), lr=0.01)
+    opt = torch.optim.Adam(captioner.parameters(), lr=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        opt,
+        5,
+        0.1
+    )
+
     train(captioner, dl, opt)
 
 

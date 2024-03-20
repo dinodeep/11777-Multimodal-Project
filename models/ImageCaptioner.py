@@ -81,7 +81,7 @@ class ImageCaptioner(nn.Module):
         img_enc = self.img_encoder(imgs)
 
         # create start tokens for each sequence in the batch (B, 1, E)
-        start_indices = torch.full((B, 1), self.vocab.get_padding_idx())
+        start_indices = torch.full((B, 1), self.vocab.get_starting_idx())
         start_tok_embeddings = self.embeddings(start_indices)
 
         # initialize token embeddings being passed into RNN layer and hidden
