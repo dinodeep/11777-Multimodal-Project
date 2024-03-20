@@ -104,7 +104,7 @@ def main(args):
     # TODO: should be moving this to data loader with appropriate collating
     dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, 1, False, 0)
 
-    opt = torch.optim.Adam(captioner.parameters(), lr=0.1)
+    opt = torch.optim.Adam(captioner.parameters(), lr=0.01)
     scheduler = torch.optim.lr_scheduler.StepLR(
         opt,
         5,
