@@ -16,6 +16,8 @@ class ImageCaptioner(nn.Module):
         # initialize image encoder
         self.hidden_dim = hidden_dim
         self.img_encoder = ImageEncoder(hidden_dim)
+        self.img_encoder.eval()
+        self._freeze_img_enc()
 
         # initialize token embeddings
         self.token_emb_dim = token_emb_dim
@@ -37,6 +39,22 @@ class ImageCaptioner(nn.Module):
 
         # softmax to create probability distribution over vocabulary
         self.softmax = nn.Softmax(dim=-1)
+
+    def _freeze_img_enc(self):
+        for p in self.img_encoder.parameters():
+            p.requires_grad = False
+
+    def train(self):
+        super().train()
+        self._freeze_img_enc() 
+            
+        return
+
+    def eval(self):
+        super().eval()
+        self._freeze_img_enc()
+
+        return
 
 
     def forward(self, imgs, gt_words):
@@ -64,12 +82,12 @@ class ImageCaptioner(nn.Module):
         out = self.lin_out(rnn_out)
 
         # softmax to get outputs
-        prob = self.softmax(out)
+        # prob = self.softmax(out)
 
         # (B, L, V)
-        B_out, L_out, V_out = prob.shape
+        B_out, L_out, V_out = out.shape
         assert(B_out == B and L_out == L and V_out == self.vocab_size)
-        return prob
+        return out
     
 
     def sample_token_idxs(self, imgs, max_length=32):

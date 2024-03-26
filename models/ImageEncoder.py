@@ -25,17 +25,18 @@ class ImageEncoder(nn.Module):
         )
 
         return
-    
 
     def forward(self, x):
         '''x: (B, C, H, W)'''
         z = self.img_enc(x)
-        return z
+        return z 
     
 
 
 def test():
     enc = ImageEncoder()
+    total_params = sum(p.numel() for p in enc.parameters())
+    print(f"Total Parameters: {total_params / 1000000}")
 
     b = 8
     c = 3
