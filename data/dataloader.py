@@ -37,6 +37,35 @@ VAL_TRANSFORM = transforms.Compose([
 # download nltk setup
 nltk.download("wordnet")
 
+def trim_tokens(vocab, tokens):
+
+    # keep only everything after start
+    if vocab.START in tokens:
+        idx = tokens.index(vocab.START)
+        tokens = tokens[idx+1:]
+
+    # remove everything once first end is seen
+    if vocab.END in tokens:
+        idx = tokens.index(vocab.END)
+        tokens = tokens[:idx] 
+
+    return tokens
+
+def word_tokenizer(s):
+    return nltk.tokenize.word_tokenize(s.lower())
+
+def char_tokenizer(s):
+    clean_text = re.sub(r'[^a-zA-Z0-9_ \.?!:]+', '', s.lower())
+    return list(clean_text)
+
+def word_merger(vocab, tokens):
+    tokens = trim_tokens(vocab, tokens)
+    return " ".join(tokens)
+    
+def char_merger(vocab, tokens):
+    tokens = trim_tokens(vocab, tokens)
+    return "".join(tokens)
+
 class VIST:
     def __init__(self, sis_file = None):
         if sis_file != None:
@@ -115,13 +144,7 @@ class Vocabulary(object):
 def build_vocab(sis_file, threshold):
     vist = VIST(sis_file, )
     counter = Counter()
-
-    def tokenizer(s):
-        return nltk.tokenize.word_tokenize(s.lower())
     
-    def merger(tokens):
-        return " ".join(tokens)
-
     ids = vist.stories.keys()
     for i, id in enumerate(ids):
         story = vist.stories[id]
@@ -129,7 +152,7 @@ def build_vocab(sis_file, threshold):
             caption = annotation['text']
             tokens = []
             try:
-                tokens = tokenizer(caption)
+                tokens = word_tokenizer(caption)
             except Exception:
                 pass
             counter.update(tokens)
@@ -139,7 +162,7 @@ def build_vocab(sis_file, threshold):
 
     words = [word for word, cnt in counter.items() if cnt >= threshold]
 
-    vocab = Vocabulary(tokenizer, merger)
+    vocab = Vocabulary(word_tokenizer, word_merger)
 
     for i, word in enumerate(words):
         vocab.add_word(word)
@@ -150,13 +173,6 @@ def build_character_vocab(sis_file, threshold):
 
     vist = VIST(sis_file)
     counter = Counter()
-
-    def tokenizer(s):
-        clean_text = re.sub(r'[^a-zA-Z0-9_ \.?!:]+', '', s.lower())
-        return list(clean_text)
-    
-    def merger(tokens):
-        return "".join(tokens)
 
     ids = vist.stories.keys()
     for i, id in enumerate(ids):
@@ -172,7 +188,7 @@ def build_character_vocab(sis_file, threshold):
 
     chars = [char for char, cnt in counter.items() if cnt >= threshold] 
 
-    vocab = Vocabulary(tokenizer, merger)
+    vocab = Vocabulary(char_tokenizer, char_merger)
 
     for i, chars in enumerate(chars):
         vocab.add_word(chars)

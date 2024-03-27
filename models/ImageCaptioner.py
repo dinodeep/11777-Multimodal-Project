@@ -148,7 +148,7 @@ class ImageCaptioner(nn.Module):
         # join each string token by a space
         batch_strs = []
         for token_list in batch_token_list:
-            batch_strs.append(self.vocab.merger(token_list))
+            batch_strs.append(self.vocab.merger(self.vocab, token_list))
         
         return batch_strs
 

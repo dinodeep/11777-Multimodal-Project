@@ -4,6 +4,7 @@ settings.py
 
 from models.ImageCaptioner import ImageCaptioner
 import settings
+import pickle
 
 from data.dataloader import \
     build_vocab, \
@@ -28,14 +29,41 @@ def load_sis_path(split="train"):
     assert(_split_valid(split))
     return os.path.join(settings.DATA_DIR, "sis", f"{split}.story-in-sequence.json")
 
+def load_vocab_pickle_path(split="train"):
+    assert(_split_valid(split))
+    token_type = "word" if settings.USE_WORD_VOCAB else "char"
+    return os.path.join(settings.VOCAB_PICKLE_DIR, f"{split}-{token_type}.pkl")
+
+def load_vocab_pickle(split="train"):
+    assert(_split_valid(split))
+
+    vocab_pickle_path = load_vocab_pickle_path(split)
+    if os.path.exists(vocab_pickle_path):
+        with open(vocab_pickle_path, "rb") as f:
+            vocab = pickle.load(f)
+        return vocab
+    else:
+        return None
+
 def load_vocab(split="train"):
     assert(_split_valid(split))
-    sis_path = load_sis_path(split)
 
+    # attempt to load pickled version, otherwise, re-build
+    vocab = load_vocab_pickle(split)
+    if vocab is not None:
+        return vocab
+
+    # otherwise build the vocab
+    sis_path = load_sis_path(split)
     if settings.USE_WORD_VOCAB:
         vocab = build_vocab(sis_path, settings.WORD_VOCAB_COUNT_THRESHOLD)
     else:
         vocab = build_character_vocab(sis_path, settings.CHAR_VOCAB_COUNT_THRESHOLD)
+
+    # save the vocab to path for faster loading
+    vocab_pickle_path = load_vocab_pickle_path(split)
+    with open(vocab_pickle_path, "wb") as f:
+        pickle.dump(vocab, f)
 
     return vocab
 
