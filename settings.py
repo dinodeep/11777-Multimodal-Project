@@ -7,7 +7,7 @@ MODEL = "large_vocab_train_captioner"
 TOKEN_EMB_DIM = 2048
 HIDDEN_DIM = 4096
 
-MODEL_SAVE_PATH = f"models/save/{MODEL}" # derived - NO TOUCH
+CHECKPOINT_PATH = f"models/save/{MODEL}" # derived - NO TOUCH
 
 # vocab settings
 USE_WORD_VOCAB = True

@@ -78,7 +78,7 @@ def train(model, dataloader, opt, scheduler, num_epochs=100):
         print(model.sample_strings(images[:1, ...]))
 
         # save the model
-        torch.save(model.state_dict(), settings.MODEL_SAVE_PATH)
+        torch.save(model.state_dict(), settings.CHECKPOINT_PATH)
 
     return
 
@@ -102,7 +102,7 @@ def eval(model, dl):
 def main(args):
     vocab = load.load_vocab(split="train")
 
-    checkpoint = settings.MODEL_SAVE_PATH if args.eval else None
+    checkpoint = settings.CHECKPOINT_PATH if args.eval else None
     captioner = load.load_captioner(vocab, checkpoint=checkpoint) 
 
     total_params = sum(p.numel() for p in captioner.parameters())
