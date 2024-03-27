@@ -62,6 +62,8 @@ class VIST:
         self.stories = stories
 
 class Vocabulary(object):
+    # TODO: needs 2 more pieces of information: split and split level: word or char
+
     def __init__(self, tokenizer, merger):
         '''tokenizer: str -> list of str constructing tokens'''
         self.word2idx = {}

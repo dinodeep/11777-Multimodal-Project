@@ -14,10 +14,11 @@ from data.dataloader import \
     get_dataloader, \
     TRAIN_TRANSFORM
 
+import settings
+
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-RUN_NAME = "large_vocab_train_captioner"
-MODEL_SAVE_PATH = f"models/save/{RUN_NAME}"
+MODEL_SAVE_PATH = f"models/save/{settings.MODEL}"
 
 MAX_BATCHES_PER_EPOCH = 100
 
@@ -109,30 +110,28 @@ def eval(model, dl):
 
 def main(args):
 
-    data_dir = args.data_dir
+    data_dir = settings.DATA_DIR
     FOLDER = "train"
 
     # TODO: incapsulate vocab creation a bit better
     root = os.path.join(data_dir, "images", FOLDER)
     sis_path = os.path.join(data_dir, "sis", f"{FOLDER}.story-in-sequence.json")
 
-    use_word_tokenizer = True
-
     MAX_CHAR_SEQ_LEN = 64
     MAX_WORD_SEQ_LEN = 32
     
-    if use_word_tokenizer:
+    if settings.USE_WORD_VOCAB:
         max_seq_len = MAX_WORD_SEQ_LEN
-        vocab = build_vocab(sis_path, 10) # originally 50
+        vocab = build_vocab(sis_path, settings.WORD_VOCAB_COUNT_THRESHOLD)
     else:
         max_seq_len = MAX_CHAR_SEQ_LEN
-        vocab = build_character_vocab(sis_path, 50)
+        vocab = build_character_vocab(sis_path, settings.CHAR_VOCAB_COUNT_THRESHOLD)
 
 
     captioner = ImageCaptioner(
         vocab=vocab,
-        token_emb_dim=2048, # 1024,
-        hidden_dim=4096 # 2048
+        token_emb_dim=settings.TOKEN_EMB_DIM, # 1024,
+        hidden_dim=settings.HIDDEN_DIM # 2048
     )
     
     if args.eval:
