@@ -151,7 +151,7 @@ def main(args):
         dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, BATCH_SIZE, SHUFFLE, 0)
 
         opt = torch.optim.Adam(captioner.parameters(), lr=0.0001)
-        scheduler = torch.optim.StepLR(optimizer, step_size=10, gamma=0.5)
+        scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=10, gamma=0.5)
         train(captioner, dl, opt, scheduler)
     else:
         SHUFFLE = False
