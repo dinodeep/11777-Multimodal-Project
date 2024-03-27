@@ -64,10 +64,9 @@ def load_captioner(vocab, checkpoint=None):
     )
 
     if checkpoint is not None:
-        captioner.load_state_dict(torch.load())
-        pass
+        captioner.load_state_dict(torch.load(checkpoint, map_location=settings.DEVICE))
 
-    pass
+    return captioner
 
 
 if __name__ == "__main__":

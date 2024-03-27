@@ -2,10 +2,10 @@ from eval.intrinsic.bert import NextSentenceMetric
 from eval.intrinsic.clip import CLIPSimilarityMetric
 
 
-def evaluate_ns_metric(model, ds):
+def evaluate_ns_metric(model, dl):
     pass
 
-def evaluate_clip_metric(model, ds):
+def evaluate_clip_metric(model, dl):
     pass
 
 def main():

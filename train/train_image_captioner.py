@@ -118,7 +118,7 @@ def main(args):
         scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=10, gamma=0.5)
         train(captioner, dl, opt, scheduler)
     else:
-        dl = load.load_dataloader(vocab, split="eval", shuffle=False, batch_size=1)
+        dl = load.load_dataloader(vocab, split="val", shuffle=False, batch_size=1)
         eval(captioner, dl)
 
 
