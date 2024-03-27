@@ -5,6 +5,8 @@ import torchvision
 from models.ImageEncoder import ImageEncoder
 from data.dataloader import build_vocab, build_character_vocab, get_dataset, TRAIN_TRANSFORM
 
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 class ImageCaptioner(nn.Module):
 
     def __init__(self, vocab, token_emb_dim=256, hidden_dim=512):
@@ -99,8 +101,8 @@ class ImageCaptioner(nn.Module):
         img_enc = self.img_encoder(imgs)
 
         # create start tokens for each sequence in the batch (B, 1, E)
-        start_indices = torch.full((B, 1), self.vocab.get_starting_idx())
-        start_tok_embeddings = self.embeddings(start_indices)
+        start_indices = torch.full((B, 1), self.vocab.get_starting_idx()).to(DEVICE)
+        start_tok_embeddings = self.embeddings(start_indices).to(DEVICE)
 
         # initialize token embeddings being passed into RNN layer and hidden
         seq_token_idxs = [start_indices]
