@@ -16,6 +16,9 @@ from data.dataloader import \
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+RUN_NAME = "full_train_captioner"
+MODLE_SAVE_PATH = f"models/save/{RUN_NAME}"
+
 
 def train(model, dataloader, opt, num_epochs=100):
     '''
@@ -34,7 +37,10 @@ def train(model, dataloader, opt, num_epochs=100):
     # define cross entropy loss
     loss_fn = nn.CrossEntropyLoss()
 
-    for i in range(num_epochs):
+    for i in tqdm(range(num_epochs)):
+
+        avg_loss = 0
+        nbatches = 0
 
         for j, data in enumerate(dataloader):
             print(j)
@@ -58,7 +64,7 @@ def train(model, dataloader, opt, num_epochs=100):
             next_gt_toks = next_gt_toks.flatten()
 
             loss = loss_fn(pred, next_gt_toks)
-            print(loss.item())
+            avg_loss += loss.item()
             # import pdb; pdb.set_trace()
 
             # backward pass
@@ -66,9 +72,16 @@ def train(model, dataloader, opt, num_epochs=100):
             loss.backward()
             opt.step()
 
+            nbatches += 1
 
             # break
+
+        avg_loss /= nbatches
+        print(f"Avg Loss: {avg_loss:.3f}")
         print(model.sample_strings(images))
+
+        # save the model
+        torch.save(model, MODLE_SAVE_PATH)
 
     return
 
@@ -81,16 +94,17 @@ def eval(model, dl):
         result = model.sample_token_idxs(imgs)
         import pdb; pdb.set_trace()
 
-    pass
+    return
 
 
 def main(args):
 
     data_dir = args.data_dir
+    FOLDER = "val"
 
     # TODO: incapsulate vocab creation a bit better
-    root = os.path.join(data_dir, "images", "val")
-    sis_path = os.path.join(data_dir, "sis", "val.story-in-sequence.json")
+    root = os.path.join(data_dir, "images", FOLDER)
+    sis_path = os.path.join(data_dir, "sis", f"{FOLDER}.story-in-sequence.json")
 
     use_word_tokenizer = True
 
@@ -118,16 +132,10 @@ def main(args):
     print(f"Total Parameters:{total_params / (1000000):.2f}M")
     print(f"Train Parameters:{trainable_params / (1000):.2f}K")
 
-    # TODO: should be moving this to data loader with appropriate collating
-    dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, 6, False, 0)
+    SHUFFLE = True
+    dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, SHUFFLE, False, 0)
 
-    opt = torch.optim.Adam(captioner.parameters(), lr=0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(
-        opt,
-        5,
-        0.1
-    )
-
+    opt = torch.optim.Adam(captioner.parameters(), lr=0.005)
     train(captioner, dl, opt)
 
 
