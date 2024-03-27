@@ -305,6 +305,17 @@ def test():
         data[4]: list[str] - list of different album ids or something?
     '''
 
+    # data folder should be structured as follows
+    '''
+        {data-dir}/
+            images/
+                train/
+                val/
+                test/
+            dii/
+            sis/
+    '''
+
     import pdb; pdb.set_trace()
 
 if __name__ == "__main__":

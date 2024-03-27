@@ -13,6 +13,7 @@ from data.dataloader import \
     TRAIN_TRANSFORM, \
     VAL_TRANSFORM
 
+import torch
 import os
 
 def _split_valid(split):
@@ -38,20 +39,40 @@ def load_vocab(split="train"):
 
     return vocab
 
+def load_dataset():
+    # TODO: 
+    pass
+
 def load_dataloader(vocab, split="train", shuffle=False, batch_size=1):
-    '''vocab's split and split should be the same'''
     assert(_split_valid(split))
 
     root = load_image_root(split)
     sis = load_sis_path(split)
 
     transform = TRAIN_TRANSFORM if split == "train" else VAL_TRANSFORM
-    dl = get_dataloader(root, sis, vocab, transform, settings.MAX_SEQ_LEN, batch_size, shuffle, 0) 
+    max_seq_len = settings.WORD_MAX_SEQ_LEN if settings.USE_WORD_VOCAB else settings.CHAR_MAX_SEQ_LEN
+    dl = get_dataloader(root, sis, vocab, transform, max_seq_len, batch_size, shuffle, 0) 
 
     return dl
+
+def load_captioner(vocab, checkpoint=None):
+
+    captioner = ImageCaptioner(
+        vocab,
+        token_emb_dim=settings.TOKEN_EMB_DIM,
+        hidden_dim=settings.HIDDEN_DIM
+    )
+
+    if checkpoint is not None:
+        captioner.load_state_dict(torch.load())
+        pass
+
+    pass
 
 
 if __name__ == "__main__":
     
     # perform an example load
+    vocab = load_vocab(split="train")
+    dataloader = load_dataloader(vocab, split="val")
     pass

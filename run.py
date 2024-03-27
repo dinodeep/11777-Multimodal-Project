@@ -8,7 +8,6 @@ def main(args):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir")
     parser.add_argument("--eval", action="store_true")
 
     args = parser.parse_args()

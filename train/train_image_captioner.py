@@ -7,18 +7,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.ImageCaptioner import ImageCaptioner
-from data.dataloader import \
-    build_vocab, \
-    build_character_vocab, \
-    get_dataset, \
-    get_dataloader, \
-    TRAIN_TRANSFORM
+import load
 
 import settings
-
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-MODEL_SAVE_PATH = f"models/save/{settings.MODEL}"
 
 MAX_BATCHES_PER_EPOCH = 100
 
@@ -87,19 +78,19 @@ def train(model, dataloader, opt, scheduler, num_epochs=100):
         print(model.sample_strings(images[:1, ...]))
 
         # save the model
-        torch.save(model.state_dict(), MODEL_SAVE_PATH)
+        torch.save(model.state_dict(), settings.MODEL_SAVE_PATH)
 
     return
 
 def eval(model, dl):
     print("Evaluating")
 
-    model = model.to(DEVICE)
+    model = model.to(settings.DEVICE)
 
     for data in dl:
         imgs, _, gt_toks, _, _ = data
-        imgs = imgs.to(DEVICE)
-        gt_toks = gt_toks.to(DEVICE)
+        imgs = imgs.to(settings.DEVICE)
+        gt_toks = gt_toks.to(settings.DEVICE)
 
         result = model.sample_strings(imgs)
         print(result)
@@ -109,24 +100,7 @@ def eval(model, dl):
 
 
 def main(args):
-
-    data_dir = settings.DATA_DIR
-    FOLDER = "train"
-
-    # TODO: incapsulate vocab creation a bit better
-    root = os.path.join(data_dir, "images", FOLDER)
-    sis_path = os.path.join(data_dir, "sis", f"{FOLDER}.story-in-sequence.json")
-
-    MAX_CHAR_SEQ_LEN = 64
-    MAX_WORD_SEQ_LEN = 32
-    
-    if settings.USE_WORD_VOCAB:
-        max_seq_len = MAX_WORD_SEQ_LEN
-        vocab = build_vocab(sis_path, settings.WORD_VOCAB_COUNT_THRESHOLD)
-    else:
-        max_seq_len = MAX_CHAR_SEQ_LEN
-        vocab = build_character_vocab(sis_path, settings.CHAR_VOCAB_COUNT_THRESHOLD)
-
+    vocab = load.load_vocab(split="train")
 
     captioner = ImageCaptioner(
         vocab=vocab,
@@ -135,7 +109,7 @@ def main(args):
     )
     
     if args.eval:
-        captioner.load_state_dict(torch.load(MODEL_SAVE_PATH))
+        captioner.load_state_dict(torch.load(settings.MODEL_SAVE_PATH))
         print("loading model for evaluation successful")
 
     total_params = sum(p.numel() for p in captioner.parameters())
@@ -145,35 +119,19 @@ def main(args):
     print(f"Train Parameters:{trainable_params / (1000):.2f}K")
 
     if not args.eval:
-        SHUFFLE = True
-        BATCH_SIZE = 6
-        dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, BATCH_SIZE, SHUFFLE, 0)
+        dl = load.load_dataloader(vocab, split="train", shuffle=True, batch_size=6)
 
         opt = torch.optim.Adam(captioner.parameters(), lr=0.0001)
         scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=10, gamma=0.5)
         train(captioner, dl, opt, scheduler)
     else:
-        SHUFFLE = False
-        BATCH_SIZE = 1
-        dl = get_dataloader(root, sis_path, vocab, TRAIN_TRANSFORM, max_seq_len, BATCH_SIZE, SHUFFLE, 0)
+        dl = load.load_dataloader(vocab, split="eval", shuffle=False, batch_size=1)
         eval(captioner, dl)
 
 
 if __name__ == "__main__":
 
-    # data folder should be structured as follows
-    '''
-        {data-dir}/
-            images/
-                train/
-                val/
-                test/
-            dii/
-            sis/
-    '''
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir")
     parser.add_argument("--eval", action="store_true")
 
     args = parser.parse_args()
