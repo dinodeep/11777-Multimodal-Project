@@ -26,7 +26,7 @@ def train(model, dataloader, opt, scheduler, num_epochs=100):
     '''
     print("Training")
 
-    model = model.to(DEVICE)
+    model = model.to(settings.DEVICE)
 
     # define cross entropy loss
     loss_fn = nn.CrossEntropyLoss()
@@ -38,8 +38,8 @@ def train(model, dataloader, opt, scheduler, num_epochs=100):
 
         for j, data in enumerate(dataloader):
             images, _, gt_toks, _, _ = data
-            images = images.to(DEVICE)
-            gt_toks = gt_toks.to(DEVICE)
+            images = images.to(settings.DEVICE)
+            gt_toks = gt_toks.to(settings.DEVICE)
             # print(gt_toks[0])
 
             # import pdb; pdb.set_trace()
@@ -102,15 +102,8 @@ def eval(model, dl):
 def main(args):
     vocab = load.load_vocab(split="train")
 
-    captioner = ImageCaptioner(
-        vocab=vocab,
-        token_emb_dim=settings.TOKEN_EMB_DIM, # 1024,
-        hidden_dim=settings.HIDDEN_DIM # 2048
-    )
-    
-    if args.eval:
-        captioner.load_state_dict(torch.load(settings.MODEL_SAVE_PATH))
-        print("loading model for evaluation successful")
+    checkpoint = settings.MODEL_SAVE_PATH if args.eval else None
+    captioner = load.load_captioner(vocab, checkpoint=checkpoint) 
 
     total_params = sum(p.numel() for p in captioner.parameters())
     trainable_params = sum(p.numel() for p in captioner.parameters() if p.requires_grad)
