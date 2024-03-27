@@ -28,7 +28,7 @@ class NextSentenceMetric:
         assert(len(strs1) == len(strs2))
 
         probs = np.zeros(len(strs1))
-        for i in tqdm(range(len(strs1))):
+        for i in range(len(strs1)):
             probs[i] = self.next_sentence_predict(strs1[i], strs2[i])
             
         if reduction is None:
@@ -46,7 +46,7 @@ class NextSentenceMetric:
         strs1 = strs[:-1]
         strs2 = strs[1:]
 
-        return self.next_sentence_predict_batch(self, strs1, strs2, reduction="mean")
+        return self.next_sentence_predict_batch(strs1, strs2, reduction="mean")
     
 
     def next_sentence_predict_seq_batch(self, batch_strs):

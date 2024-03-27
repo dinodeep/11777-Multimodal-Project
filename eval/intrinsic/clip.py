@@ -32,7 +32,7 @@ class CLIPSimilarityMetric:
         assert(len(images) == len(strs))
 
         scores= np.zeros(len(images))
-        for i in tqdm(range(len(images))):
+        for i in range(len(images)):
             scores[i] = self.similarity(images[i], strs[i])
             
         if reduction is None:
