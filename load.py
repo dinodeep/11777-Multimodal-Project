@@ -67,9 +67,17 @@ def load_vocab(split="train"):
 
     return vocab
 
-def load_dataset():
-    # TODO: 
-    pass
+def load_dataset(vocab, split="train"):
+    assert(_split_valid(split))
+
+    root = load_image_root(split)
+    sis = load_sis_path(split)
+
+    transform = TRAIN_TRANSFORM if split == "train" else VAL_TRANSFORM
+    max_seq_len = settings.WORD_MAX_SEQ_LEN if settings.USE_WORD_VOCAB else settings.CHAR_MAX_SEQ_LEN    
+    ds = get_dataset(root, sis, vocab, transform, max_seq_len)
+
+    return ds
 
 def load_dataloader(vocab, split="train", shuffle=False, batch_size=1):
     assert(_split_valid(split))

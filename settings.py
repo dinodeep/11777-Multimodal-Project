@@ -3,7 +3,7 @@
 import torch
 
 # model settings
-MODEL = "very_large_vocab_train_captioner"
+MODEL = "large_vocab_train_captioner"
 TOKEN_EMB_DIM = 2048
 HIDDEN_DIM = 4096
 
@@ -16,7 +16,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # vocab settings
 USE_WORD_VOCAB = True
 
-WORD_VOCAB_COUNT_THRESHOLD = 3 # originally 50
+WORD_VOCAB_COUNT_THRESHOLD = 10 # originally 50
 WORD_MAX_SEQ_LEN = 32
 
 CHAR_VOCAB_COUNT_THRESHOLD = 50
